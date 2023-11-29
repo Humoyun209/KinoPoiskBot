@@ -23,9 +23,10 @@ class KinoPoiskAPI:
             self.session = aiohttp.ClientSession()
         return self.session
 
-    async def search_movie(self, genre: str, year: int):
+    async def search_movie(self, genre: str , year: int | None = None, country: str | None = None):
         session = await self.get_session()
-        url = f'{self.url}movie?limit=5&rating.kp=8.5-10&year={year}&genres.name={genre}'
+        url = f'{self.url}movie?limit=5&rating.kp=7.5-10&year={year}&genres.name={genre}&countries.name={country}'
+        print(url)
         
         async with session.get(url, headers=self.headers) as response:
             result = await response.json()
@@ -59,7 +60,7 @@ class KinoPoiskAPI:
                     resized_image.save(file_path)                  
         return f'{movie_id}.jpg'
     
-    def get_result(data: Mapping) -> list[Movie]:
+    def get_result(self, data: Mapping) -> list[Movie]:
         result: list[Movie] = []
         for movie in data['docs']:
             result.append(
