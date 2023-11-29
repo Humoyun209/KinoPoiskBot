@@ -3,8 +3,10 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class Movie:
-    genres: str
-    description: str
+    name: str
+    alternativeName: str | None
+    genres: list[str]
+    description: str | None
     rating_kp: float
     rating_imdb: float
     year: int
