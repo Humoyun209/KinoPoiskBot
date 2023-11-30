@@ -26,12 +26,11 @@ class KinoPoiskAPI:
     async def search_movie(self, genre: str , year: int | None = None, country: str | None = None):
         session = await self.get_session()
         url = f'{self.url}movie?limit=5&rating.kp=7.5-10&year={year}&genres.name={genre}&countries.name={country}'
-        print(url)
         
         async with session.get(url, headers=self.headers) as response:
             result = await response.json()
-            with open(f'app/mock/{genre}_{year}.json', 'w') as f:
-                json.dump(result, f, indent=2)
+            # with open(f'app/mock/{genre}_{year or "no_year"}_{country or "no_country"}.json', 'w') as f:
+            #     json.dump(result, f, indent=2)
             return self.get_result(result)
 
     async def download_image(self, url: str, query: str):
@@ -54,7 +53,6 @@ class KinoPoiskAPI:
                                 if not chunk:
                                     break
                                 f.write(chunk)
-                    
                     image = Image.open(file_path)
                     resized_image = image.resize((360, 540))
                     resized_image.save(file_path)                  
@@ -65,6 +63,8 @@ class KinoPoiskAPI:
         for movie in data['docs']:
             result.append(
                 Movie(
+                    name=movie.get('name'),
+                    alternativeName=movie.get('alternativeName') if movie.get('alternativeName') else 'No name',
                     genres=[genre.get('name') for genre in  movie.get('genres')] if movie.get('genres') else [],
                     description=movie.get('description'),
                     rating_kp=movie.get('rating').get('kp'),

@@ -1,3 +1,4 @@
+import pprint
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
@@ -70,7 +71,7 @@ async def get_genre(cb: CallbackQuery, state: FSMContext):
 @router.message(StateFilter(UserFilter.year), lambda msg: (msg.text.isdigit() and 1945 < int(msg.text) <= 2023) or msg.text == "skip")
 async def get_year(message: Message, state: FSMContext):
     if message.text != "skip":
-        await state.update_data(**{"year": int(message.text)})
+        await state.update_data(**{"year": message.text})
     await state.set_state(UserFilter.country)
     await message.answer("Пожалуйста, выберите страна фильма \n(Если не имеется, нажмите на skip)",
                          reply_markup=counry_keyboard)
@@ -82,12 +83,13 @@ async def get_result(cb: CallbackQuery, state: FSMContext):
     filters = await state.get_data()
     await state.set_state(default_state)
     result: list[Movie] = await api.search_movie(**filters)
+    path_name = '_'.join(filters.values())
     await cb.message.answer("Всё ок, непереживайте")
-    # for movie in result:
-    #     file_name = await api.download_image(movie.post_image_url, message.text)
-    #     await cb.message.answer_photo(
-    #         photo=FSInputFile(f"app/images/{message.text}/{file_name}"),
-    #         caption=f'<b>Имя:</b> {movie["name"]} ({movie["alternativeName"]})\n<b>Описание:</b> {movie["description"][:150]}...\n<b>Рейтинг в кинопоиске: </b>{movie["rating"]["kp"]} / 10',
-    #         parse_mode='HTML'
-    #     )
+    for movie in result:
+        file_name = await api.download_image(movie.post_image_url, path_name)
+        await cb.message.answer_photo(
+            photo=FSInputFile(f"app/images/{path_name}/{file_name}"),
+            caption=f'<b>Имя:</b> {movie.name} ({movie.alternativeName})\n<b>Описание:</b> {movie.description[:150]}...\n<b>Рейтинг в кинопоиске: </b>{movie.rating_kp} / 10\n<b>Рейтинг в IMDB: </b>{movie.rating_imdb} / 10',
+            parse_mode='HTML'
+        )
     
