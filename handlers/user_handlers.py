@@ -10,8 +10,10 @@ from fsm import UserFilter
 from db.models import Movie
 from db.database import DataBase
 from kinopoisk.api import KinoPoiskAPI
+
 from keyboards.genre_kb import genre_keyboard
 from keyboards.country_kb import counry_keyboard
+from keyboards.movie_url_kb import get_movie_kb
 
 from environs import Env
 
@@ -89,6 +91,7 @@ async def get_result(cb: CallbackQuery, state: FSMContext):
         await cb.message.answer_photo(
             photo=FSInputFile(f"app/images/{path_name}/{file_name}"),
             caption=f'<b>Имя:</b> {movie.name} ({movie.alternativeName})\n<b>Описание:</b> {movie.description[:150]}...\n<b>Рейтинг в кинопоиске: </b>{movie.rating_kp} / 10\n<b>Рейтинг в IMDB: </b>{movie.rating_imdb} / 10',
-            parse_mode='HTML'
+            parse_mode='HTML',
+            reply_markup=get_movie_kb(movie.preview_url)
         )
     

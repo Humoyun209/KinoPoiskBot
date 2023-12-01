@@ -2,6 +2,7 @@ import os
 import json
 from typing import Mapping
 import aiohttp
+import aiofiles
 
 from PIL import Image
 
@@ -26,12 +27,16 @@ class KinoPoiskAPI:
     async def search_movie(self, genre: str , year: int | None = None, country: str | None = None):
         session = await self.get_session()
         url = f'{self.url}movie?limit=5&rating.kp=7.5-10&year={year}&genres.name={genre}&countries.name={country}'
-        
-        async with session.get(url, headers=self.headers) as response:
-            result = await response.json()
-            # with open(f'app/mock/{genre}_{year or "no_year"}_{country or "no_country"}.json', 'w') as f:
-            #     json.dump(result, f, indent=2)
-            return self.get_result(result)
+        file_name = f'app/mock/{genre}_{year or "no_year"}_{country or "no_country"}.json'
+        if os.path.isfile(file_name):
+            with open(file_name, 'r') as f:
+                return self.get_result(json.load(f))
+        else:
+            async with session.get(url, headers=self.headers) as response:
+                result = await response.json()
+                async with aiofiles.open(f'{file_name}', 'w') as f:
+                    await f.write(json.dumps(result, indent=2))
+                return self.get_result(result)
 
     async def download_image(self, url: str, query: str):
         session = await self.get_session()

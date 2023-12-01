@@ -2,7 +2,7 @@ import openai
 
 from aiogram import Router
 from aiogram.filters import Command, StateFilter
-from aiogram.types import Message, CallbackGame
+from aiogram.types import Message
 from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.fsm.context import FSMContext
 
@@ -36,7 +36,7 @@ async def process_with_gpt(message: Message):
         temperature=0.7,
         top_p=1.0,
         frequency_penalty=0.5,
-        presence_penalty=0.5
+        presence_penalty=0.5,
     )
 
     generated_text = response.choices[0].text.strip()
