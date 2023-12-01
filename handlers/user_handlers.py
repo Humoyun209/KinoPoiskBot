@@ -1,7 +1,6 @@
-import pprint
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
 from aiogram.types.input_file import FSInputFile
 from aiogram.filters import StateFilter
 from aiogram.fsm.state import default_state
