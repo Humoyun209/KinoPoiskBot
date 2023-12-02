@@ -1,4 +1,4 @@
-import openai
+from openai import AsyncOpenAI
 
 from aiogram import Router
 from aiogram.filters import Command, StateFilter
@@ -11,35 +11,53 @@ from environs import Env
 
 router = Router()
 
+
 class GPTState(StatesGroup):
     gpt_state = State()
+
 
 env = Env()
 env.read_env()
 
-openai.api_key = env.str('GPT_KEY')
+client = AsyncOpenAI(api_key=env.str("GPT_KEY"))
 
 
-@router.message(Command(commands=['gpt']), StateFilter(default_state))
+@router.message(Command(commands=["gpt"]), StateFilter(default_state))
 async def start_with_gpt(message: Message, state: FSMContext):
     await state.set_state(GPTState.gpt_state)
-    await message.answer('Здравствуйте! <b><i>Я Chat GPT</i></b>\n\nЧто вас интересует?\n\nДля возврашения в началное состаяние отправьте /cancel',
-                         parse_mode='HTML')
-    
+    await message.answer(
+        "Здравствуйте! <b><i>Я Chat GPT</i></b>\n\nЧто вас интересует?\n\nДля возврашения в началное состаяние отправьте /cancel",
+        parse_mode="HTML",
+    )
+
 
 @router.message(StateFilter(GPTState.gpt_state))
 async def process_with_gpt(message: Message):
-    response = openai.Completion.create(
-        engine='text-davinci-003',
-        prompt=message.text,
-        max_tokens=1000,
-        temperature=0.7,
-        top_p=1.0,
-        frequency_penalty=0.5,
-        presence_penalty=0.5,
+    stream = await client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": message.text
+            }
+        ],
+        model="gpt-3.5-turbo",
+        stream=True,
     )
+    sent_msg = await message.answer("Вот ваш ответь: \n\n")
+    result = "Вот ваш ответь: \n\n"
+    async for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            answer = chunk.choices[0].delta.content
+            result += answer
+        try:
+            await sent_msg.edit_text(result)
+        except Exception as e:
+            pass
+    
+    await message.answer("Для возврашения в началное состаяние отправьте /cancel")
 
-    generated_text = response.choices[0].text.strip()
 
-    await message.reply(generated_text)
-    await message.answer('Для возврашения в началное состаяние отправьте /cancel')
+
+
+
+

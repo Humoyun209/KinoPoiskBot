@@ -24,10 +24,8 @@ class KinoPoiskAPI:
             self.session = aiohttp.ClientSession()
         return self.session
 
-    async def search_movie(self, genre: str , year: int | None = None, country: str | None = None):
+    async def get_movies(self, url, file_name):
         session = await self.get_session()
-        url = f'{self.url}movie?limit=5&rating.kp=7.5-10&year={year}&genres.name={genre}&countries.name={country}'
-        file_name = f'app/mock/{genre}_{year or "no_year"}_{country or "no_country"}.json'
         if os.path.isfile(file_name):
             with open(file_name, 'r') as f:
                 return self.get_result(json.load(f))
@@ -37,6 +35,16 @@ class KinoPoiskAPI:
                 async with aiofiles.open(f'{file_name}', 'w') as f:
                     await f.write(json.dumps(result, indent=2))
                 return self.get_result(result)
+    
+    async def search_movie(self, query):
+        url = f'{self.url}movie/search?limit=5&query={query}'
+        file_name = f'app/mock/query_{query}.json'
+        return self.get_movies(url, file_name)
+
+    async def filter_movie(self, genre: str , year: int | None = None, country: str | None = None):
+        url = f'{self.url}movie?limit=5&rating.kp=7.5-10&year={year}&genres.name={genre}&countries.name={country}'
+        file_name = f'app/mock/{genre}_{year or "no_year"}_{country or "no_country"}.json'
+        return self.get_movies(url, file_name)
 
     async def download_image(self, url: str, query: str):
         session = await self.get_session()

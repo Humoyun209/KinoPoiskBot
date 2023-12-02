@@ -1,5 +1,6 @@
 from environs import Env
 import logging
+from fsm import set_main_menu
 
 from handlers.user_handlers import router as user_router
 from handlers.admin_handlers import router as admin_router
@@ -15,7 +16,8 @@ env.read_env()
 
 async def main():
     dp: Dispatcher = Dispatcher()
-    bot: Bot = Bot(token=env.str('TOKEN'))
+    bot: Bot = Bot(token=env.str('TOKEN'), parse_mode='HTML')
+    await set_main_menu(bot)
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)s - [%(asctime)s] - %(name)s - %(message)s')
 

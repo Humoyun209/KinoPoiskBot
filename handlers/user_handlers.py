@@ -25,6 +25,17 @@ db = DataBase("app/db.sqlite3")
 api = KinoPoiskAPI(token=env.str("KINOPOISK_TOKEN"))
 
 
+async def output_movies(message: Message, result: list[Movie], path_name: str):
+    for movie in result:
+        file_name = await api.download_image(movie.post_image_url, path_name)
+        await message.answer_photo(
+            photo=FSInputFile(f"app/images/{path_name}/{file_name}"),
+            caption=f'<b>Имя:</b> {movie.name} ({movie.alternativeName})\n<b>Описание:</b> {movie.description[:150]}...\n<b>Рейтинг в кинопоиске: </b>{movie.rating_kp} / 10\n<b>Рейтинг в IMDB: </b>{movie.rating_imdb} / 10',
+            parse_mode='HTML',
+            reply_markup=get_movie_kb(movie.preview_url)
+        )
+
+
 @router.message(Command(commands=["start"]))
 async def process_start(message: Message):
     await db.create_user(message.from_user.id, message.from_user.username)
@@ -46,7 +57,7 @@ async def get_me(message: Message):
     )
 
 
-@router.message(Command(commands=["filterMovie"]), StateFilter(default_state))
+@router.message(Command(commands=["filtermovie"]), StateFilter(default_state))
 async def find_movie(message: Message, state: FSMContext):
     await message.answer("Вы можете получить  5 высокорейтинговых фильмов в Кинопоиске \n\n<b><i>Выберите джанр:</i></b> ",
                          parse_mode='HTML',
@@ -54,7 +65,7 @@ async def find_movie(message: Message, state: FSMContext):
     await state.set_state(UserFilter.genre_name)
     
 
-@router.message(Command(commands=["filterMovie"]), ~StateFilter(default_state))
+@router.message(Command(commands=["filtermovie"]), ~StateFilter(default_state))
 async def find_movie(message: Message, state: FSMContext):
     await message.answer("Вы сейчас не можете фильтровать фильмы 😐\nЕсли хотите остановить процесс /cancel" )
     
@@ -83,15 +94,20 @@ async def get_result(cb: CallbackQuery, state: FSMContext):
     await state.update_data(**{"country": cb.data.split(":")[1]})
     filters = await state.get_data()
     await state.set_state(default_state)
-    result: list[Movie] = await api.search_movie(**filters)
+    result: list[Movie] = await api.filter_movie(**filters)
     path_name = '_'.join(filters.values())
-    await cb.message.answer("Всё ок, непереживайте")
-    for movie in result:
-        file_name = await api.download_image(movie.post_image_url, path_name)
-        await cb.message.answer_photo(
-            photo=FSInputFile(f"app/images/{path_name}/{file_name}"),
-            caption=f'<b>Имя:</b> {movie.name} ({movie.alternativeName})\n<b>Описание:</b> {movie.description[:150]}...\n<b>Рейтинг в кинопоиске: </b>{movie.rating_kp} / 10\n<b>Рейтинг в IMDB: </b>{movie.rating_imdb} / 10',
-            parse_mode='HTML',
-            reply_markup=get_movie_kb(movie.preview_url)
-        )
-    
+    await output_movies(cb.message, result, path_name)
+
+
+@router.message(Command(commands=['/search']), StateFilter(default_state))
+async def process_search(message: Message, state: FSMContext):
+    await state.set_state(UserFilter.search_query)
+    await message.answer("Введите ключевое слово фильма или сериала, который вам нужен\n\nОстановить текущий процесс /cancel")
+
+
+@router.message(StateFilter(UserFilter.search_query))
+async def get_movies_by_query(message: Message, state: FSMContext):
+    await state.set_state(default_state)
+    result: list[Movie] = await api.search_movie(message.text)
+    path_name = f'query_{message.text}'
+    await output_movies(message, result, path_name)
